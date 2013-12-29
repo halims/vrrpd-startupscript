@@ -1,0 +1,11 @@
+# Defaults for vrrpd initscript
+#
+# Uncomment and set DAEMON_CONF to the absolute path of a vrrpd configuration
+# folder and vrrpd will be started during system boot. An example configuration
+# file can be found at /etc/vrrpd/$INTERFACE_NAME.conf
+#
+DAEMON_CONF="/etc/vrrpd.d"
+
+# Additional daemon options to be appended to vrrpd command.
+#
+#DAEMON_OPTS=""

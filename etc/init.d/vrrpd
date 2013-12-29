@@ -1,0 +1,74 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:		vrrpd
+# Required-Start:	$remote_fs
+# Required-Stop:	$remote_fs
+# Should-Start:		$network
+# Should-Stop:
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	VRRP HA daemon
+# Description:	        Provides default gateway IP address for Redundancy	
+### END INIT INFO
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+DAEMON_SBIN=/usr/sbin/vrrpd
+DAEMON_DEFS=/etc/default/vrrpd
+DAEMON_CONF=
+NAME=vrrpd
+DESC="High Availability gateway IP"
+
+[ -x "$DAEMON_SBIN" ] || exit 0
+[ -s "$DAEMON_DEFS" ] && . /etc/default/vrrpd
+[ -n "$DAEMON_CONF" ] || exit 0
+
+#DAEMON_OPTS="-B -P $PIDFILE $DAEMON_OPTS $DAEMON_CONF"
+DAEMON_OPTS="-D -a none" 
+
+. /lib/lsb/init-functions
+
+case "$1" in
+  start)
+	log_daemon_msg "Starting $DESC" "$NAME"
+        for i in "$DAEMON_CONF"/*; do 
+            . "$i"
+            fn="$(basename "$i")";  INTF="${fn%.*}"; 
+	    log_daemon_msg " -> $INTF $IP_ADDR"
+	    $DAEMON_SBIN $DAEMON_OPTS -i "$INTF" -v "$ID" -p "$PRIORITY" "$IP_ADDR"  >/dev/null
+            log_end_msg "$?"
+        done	
+        ;;
+  stop)
+	log_daemon_msg "Stopping $DESC" "$NAME"
+	for i in "$DAEMON_CONF"/*; do
+	    . "$i"	
+	    fn="$(basename "$i")";  INTF="${fn%.*}";	
+	    log_daemon_msg " -> $INTF $IP_ADDR"
+       	    PID=`cat /var/run/vrrpd_"$INTF"_"$ID".pid` 
+	    kill $PID
+	    log_end_msg "$?"
+	done	
+	;;
+  reload)
+  	log_daemon_msg "Reloading $DESC" "$NAME"
+	$0 restart 
+	log_end_msg "$?"
+	;;
+  restart|force-reload)
+  	$0 stop
+	sleep 8
+	$0 start
+	;;
+  status)
+	status_of_proc "$DAEMON_SBIN" "$NAME"
+	exit $?
+	;;
+  *)
+	N=/etc/init.d/$NAME
+	echo "Usage: $N {start|stop|restart|force-reload|reload|status}" >&2
+	exit 1
+	;;
+esac
+
+exit 0
